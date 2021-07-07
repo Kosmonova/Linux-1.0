@@ -7,6 +7,11 @@ of linux, that supported a.out format. This was possible only on old versions
 of linux (I think that it's true, maybe not :)).
 ```
 
+## installing necessary requirements:
+
+**sudo apt-get install gcc-multilib -y**
+**sudo apt-get install bin86 -y**
+
 ## Process for compilling of linux:
 
 1. **git clone https://github.com/Kosmonova/Linux-1.0**
