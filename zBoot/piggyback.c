@@ -22,6 +22,20 @@
 #include <unistd.h>
 #include <elf.h>
 
+#define SYMBOLS_NUMBER			4
+#define NR_SYMBOL_DATA 			1
+#define NR_SYMBOL_INPUT_LEN		2
+#define NR_SYMBOL_INPUT_DATA	3
+
+#define FIRST_LOCAL_SYMBOL (NR_SYMBOL_INPUT_LEN)
+
+#define SECTIONS_NUMBER			5
+#define NR_SECTION_DATA 		1
+#define NR_SECTION_SHSTRTAB 	2
+#define NR_SECTION_SYMTAB		3
+#define NR_SECTION_STRTAB 		4
+
+
 int offset_symbol = 0;
 
 void cat_symbol(char **buff, char *name_symbol, Elf32_Shdr *pshr)
@@ -60,8 +74,8 @@ int main(int argc, char *argv[])
 		.e_phentsize = 0x00,
 		.e_phnum = 0x00,
 		.e_shentsize = 0x28,
-		.e_shnum = 0x07,
-		.e_shstrndx = 0x04,
+		.e_shnum = SECTIONS_NUMBER,
+		.e_shstrndx = NR_SECTION_SHSTRTAB,
 	};
 
 	len = sizeof(Elf32_Ehdr);
@@ -88,84 +102,67 @@ int main(int argc, char *argv[])
 
 	fprintf(stderr, "Compressed size %d.\n", len);
 
-	Elf32_Shdr shdr[7];
-	memset(shdr, 0, sizeof(Elf32_Shdr) * 7);
+	Elf32_Shdr shdr[SECTIONS_NUMBER];
+	memset(shdr, 0, sizeof(Elf32_Shdr) * SECTIONS_NUMBER);
 
 	char *ptmp_buf = tmp_buf + len;
 	cat_symbol(&ptmp_buf , "", shdr);
-	cat_symbol(&ptmp_buf, ".symtab", shdr +5);
-	cat_symbol(&ptmp_buf, ".strtab", shdr + 6);
-	cat_symbol(&ptmp_buf, ".shstrtab", shdr + 4);
-	cat_symbol(&ptmp_buf, ".text", shdr + 1);
-	cat_symbol(&ptmp_buf, ".data", shdr + 2);
-	cat_symbol(&ptmp_buf, ".bss", shdr + 3);
+	cat_symbol(&ptmp_buf, ".symtab", shdr + NR_SECTION_SYMTAB);
+	cat_symbol(&ptmp_buf, ".strtab", shdr + NR_SECTION_STRTAB);
+	cat_symbol(&ptmp_buf, ".shstrtab", shdr + NR_SECTION_SHSTRTAB);
+	cat_symbol(&ptmp_buf, ".data", shdr + NR_SECTION_DATA);
 
 	int len_data = len - offset_data;
 	len += offset_symbol;
 	elfn->e_shoff = len;
 	Elf32_Shdr *pshdr = tmp_buf + len;
 
-	memcpy(pshdr, shdr, sizeof(Elf32_Shdr) * 7);
+	memcpy(pshdr, shdr, sizeof(Elf32_Shdr) * SECTIONS_NUMBER);
 
-	pshdr[1].sh_type = SHT_PROGBITS;
-	pshdr[1].sh_flags = SHF_ALLOC | SHF_EXECINSTR;
-	pshdr[1].sh_offset = offset_data;
-	pshdr[1].sh_addralign = 1;
+	pshdr[NR_SECTION_DATA].sh_type = SHT_PROGBITS;
+	pshdr[NR_SECTION_DATA].sh_flags = SHF_ALLOC | SHF_WRITE;
+	pshdr[NR_SECTION_DATA].sh_offset = offset_data;
+	pshdr[NR_SECTION_DATA].sh_size = len_data;
+	pshdr[NR_SECTION_DATA].sh_addralign = 1;
 
-	pshdr[2].sh_type = SHT_PROGBITS;
-	pshdr[2].sh_flags = SHF_ALLOC | SHF_WRITE;
-	pshdr[2].sh_offset = offset_data;
-	pshdr[2].sh_size = len_data;
-	pshdr[2].sh_addralign = 1;
+	pshdr[NR_SECTION_SHSTRTAB].sh_type = SHT_STRTAB;
+	pshdr[NR_SECTION_SHSTRTAB].sh_offset = len - offset_symbol;
+	pshdr[NR_SECTION_SHSTRTAB].sh_size = offset_symbol;
+	pshdr[NR_SECTION_SHSTRTAB].sh_addralign = 1;
 
-	pshdr[3].sh_type = SHT_NOBITS;
-	pshdr[3].sh_flags = SHF_ALLOC | SHF_WRITE;
-	pshdr[3].sh_offset = len - offset_symbol;
-	pshdr[3].sh_addralign = 1;
+	len += sizeof(Elf32_Shdr) * SECTIONS_NUMBER;
 
-	pshdr[4].sh_type = SHT_STRTAB;
-	pshdr[4].sh_offset = len - offset_symbol;
-	pshdr[4].sh_size = offset_symbol;
-	pshdr[4].sh_addralign = 1;
+	pshdr[NR_SECTION_SYMTAB].sh_type = SHT_SYMTAB;
+	pshdr[NR_SECTION_SYMTAB].sh_offset = len;
+	pshdr[NR_SECTION_SYMTAB].sh_size = sizeof(Elf32_Sym) * SYMBOLS_NUMBER;
+	pshdr[NR_SECTION_SYMTAB].sh_link = NR_SECTION_STRTAB;
+	pshdr[NR_SECTION_SYMTAB].sh_info = FIRST_LOCAL_SYMBOL;
+	pshdr[NR_SECTION_SYMTAB].sh_addralign = 4;
+	pshdr[NR_SECTION_SYMTAB].sh_entsize = 0x10;
 
-	len += sizeof(Elf32_Shdr) * 7;
-
-	pshdr[5].sh_type = SHT_SYMTAB;
-	pshdr[5].sh_offset = len;
-	pshdr[5].sh_size = sizeof(Elf32_Sym) * 6;
-	pshdr[5].sh_link = 6;
-	pshdr[5].sh_info = 4;
-	pshdr[5].sh_addralign = 4;
-	pshdr[5].sh_entsize = 0x10;
-
-	pshdr[6].sh_type = SHT_STRTAB;
+	pshdr[NR_SECTION_STRTAB].sh_type = SHT_STRTAB;
 
 	Elf32_Sym *psymbols = tmp_buf + len;
-	len += sizeof(Elf32_Sym) * 6;
-	memset(psymbols, 0, sizeof(Elf32_Sym) * 6);
-	psymbols[1].st_shndx = 1;
-	psymbols[1].st_info = ELF32_ST_INFO(STB_LOCAL, STT_SECTION);
+	len += sizeof(Elf32_Sym) * SYMBOLS_NUMBER;
+	memset(psymbols, 0, sizeof(Elf32_Sym) * SYMBOLS_NUMBER);
 
-	psymbols[2].st_shndx = 2;
-	psymbols[2].st_info = ELF32_ST_INFO(STB_LOCAL, STT_SECTION);
+	psymbols[NR_SYMBOL_DATA].st_shndx = NR_SECTION_DATA;
+	psymbols[NR_SYMBOL_DATA].st_info = ELF32_ST_INFO(STB_LOCAL, STT_SECTION);
 
-	psymbols[3].st_shndx = 3;
-	psymbols[3].st_info = ELF32_ST_INFO(STB_LOCAL, STT_SECTION);
+	psymbols[NR_SYMBOL_INPUT_LEN].st_shndx = NR_SECTION_DATA;
+	psymbols[NR_SYMBOL_INPUT_LEN].st_info = ELF32_ST_INFO(STB_GLOBAL, STT_NOTYPE);
 
-	psymbols[4].st_shndx = 2;
-	psymbols[4].st_info = ELF32_ST_INFO(STB_GLOBAL, STT_NOTYPE);
-
-	psymbols[5].st_shndx = 2;
-	psymbols[5].st_info = ELF32_ST_INFO(STB_GLOBAL, STT_NOTYPE);
-	psymbols[5].st_value = sizeof(int);
+	psymbols[NR_SYMBOL_INPUT_DATA].st_shndx = NR_SECTION_DATA;
+	psymbols[NR_SYMBOL_INPUT_DATA].st_info = ELF32_ST_INFO(STB_GLOBAL, STT_NOTYPE);
+	psymbols[NR_SYMBOL_INPUT_DATA].st_value = sizeof(int);
 
 	char string_names[] = {"input_data\0input_len\0"};
-	pshdr[6].sh_offset = len;
-	pshdr[6].sh_size = sizeof(string_names);
+	pshdr[NR_SECTION_STRTAB].sh_offset = len;
+	pshdr[NR_SECTION_STRTAB].sh_size = sizeof(string_names);
 	tmp_buf[len++] = 0;
 
-	psymbols[4].st_name = 2 + strlen(string_names);
-	psymbols[5].st_name = 1;
+	psymbols[NR_SYMBOL_INPUT_LEN].st_name = 2 + strlen(string_names);
+	psymbols[NR_SYMBOL_INPUT_DATA].st_name = 1;
 
 	write(1, tmp_buf, len);
 	write(1, string_names, sizeof(string_names));

@@ -55,7 +55,7 @@ SVGA_MODE=	-DSVGA_MODE=NORMAL_VGA
 # standard CFLAGS
 #
 
-CFLAGS = -m32 -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -pipe
+CFLAGS = -m32 -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -pipe -fno-stack-protector
 
 ifdef CONFIG_CPP
 CFLAGS := $(CFLAGS) -x c++
@@ -242,6 +242,9 @@ net: dummy
 
 start: zImage
 	@qemu-system-i386 -fda zImage -hda slackwareHdd.img -boot a -m 4M -monitor stdio
+
+startVnc: zImage
+	@qemu-system-i386 -fda zImage -hda slackwareHdd.img -boot a -m 4M -monitor stdio -vnc :0
 
 bochs_start:
 	@export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libXpm.so.4

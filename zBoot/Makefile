@@ -25,7 +25,7 @@ zSystem:	piggy.o $(zOBJECTS)
 		sort > zSystem.map
 
 clean:
-	@rm *.o *.s zSystem
+	@rm *.o *.s zSystem piggyback xtract
 
 head.o:	head.S
 	gcc -D__KERNEL__ -DSTDC_HEADERS -I ../include -I../include/linux  -fno-builtin -fno-stack-protector -fomit-frame-pointer -fstrength-reduce -E -traditional -Iinclude head.S -o head.s

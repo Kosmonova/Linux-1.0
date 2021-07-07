@@ -27,7 +27,7 @@
 extern __ptr_t memcpy (__ptr_t __dest, __const __ptr_t __src,
 			    size_t __n);
 
-inline int memcmp(const void * cs,const void * ct,size_t count)
+static inline int memcmp(const void * cs,const void * ct,size_t count)
 {
 register int __res __asm__("ax");
 __asm__("cld\n\t"
