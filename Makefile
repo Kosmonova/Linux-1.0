@@ -55,7 +55,7 @@ SVGA_MODE=	-DSVGA_MODE=NORMAL_VGA
 # standard CFLAGS
 #
 
-CFLAGS = -m32 -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -pipe -fno-stack-protector
+CFLAGS = -m32 -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -pipe -fno-stack-protector -fno-reorder-functions
 
 ifdef CONFIG_CPP
 CFLAGS := $(CFLAGS) -x c++

@@ -157,7 +157,7 @@ ok_load_setup:
 
 ! Get disk drive parameters, specifically nr of sectors/track
 
-#if 0
+#if 1
 
 ! bde - the Phoenix BIOS manual says function 0x08 only works for fixed
 ! disks.  It doesn't work for one of my BIOS's (1987 Award).  It was
